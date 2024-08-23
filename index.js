@@ -3,7 +3,8 @@ const app = express()
 app.use(express.urlencoded({extended:true}))
 const mongoose=require("mongoose")
 
-mongoose.connect("mongodb+srv://samukawa:world315@cluster0.zzh2r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+//connecting to MongoDB
+mongoose.connect("mongodb+srv://samukawa:world315@cluster0.zzh2r.mongodb.net/blogUserDatabase?retryWrites=true&w=majority&appName=Cluster0")
     .then(() => {
         console.log("Success: Connected to MongoDB")
     })
@@ -11,6 +12,7 @@ mongoose.connect("mongodb+srv://samukawa:world315@cluster0.zzh2r.mongodb.net/?re
         console.error("Failure: Unconnected to MongoDB")
     })
 
+//defining Schema and Model
 const Schema = mongoose.Schema
 const BlogSchema = new Schema({
     title:String,
@@ -21,10 +23,10 @@ const BlogSchema = new Schema({
 
 const BlogModel = mongoose.model("Blog",BlogSchema)
 
-app.get("/",(req,res)=>{
-    res.send("こんにちは")
-})
+//blog function
 
+
+//create blog
 app.get("/blog/create",(req,res)=>{
     res.sendFile(__dirname+"/views/blogCreate.html")
 })
@@ -41,6 +43,70 @@ app.post("/blog/create",async (req,res)=>{
     }
 })
 
+//read all blogs
+app.get("/",async(req,res)=>{
+    const allBlogs = await BlogModel.find()
+    console.log("allblog data : ",allBlogs)
+    res.send("all blog data has read")
+})
+
+//read single blog
+app.get("/blog/:id",async(req,res)=>{
+    const singleBlog = await BlogModel.findById(req.params.id)
+    console.log("single blog data : ",singleBlog)
+    res.send("single Blog pages")
+})
+
+//update blog
+app.get("/blog/update/:id",async(req,res)=>{
+    const singleBlog = await BlogModel.findById(req.params.id)
+    console.log("singleBlog contents : ",singleBlog)
+    res.send("single Blog editted pages")
+})
+
+
+// app.post("/blog/update/:id", (req, res) => {
+//     BlogModel.updateOne({ _id: req.params.id }, req.body)
+//         .then(()=>{
+//             console.log("console.log(Finish!)")
+//             res.send("finish!!")
+//         })
+//         .catch((error)=>{
+//             console.error("Error detected : "+error.message)
+//             res.status(500).send("Errror")
+//         })
+//     res.send("finish")
+// });
+
+
+app.post("/blog/update/:id", async (req, res) => {
+    try {
+        await BlogModel.updateOne({ _id: req.params.id }, req.body);
+        res.send("OKOK finished")
+    } catch (error) {
+        res.send(error.message);
+    }
+});
+
+//delete blog
+app.get("/blog/delete/:id",async(req,res)=>{
+    const singleBlog = await BlogModel.findById(req.params.id)
+    console.log("singleBlog contents : ",singleBlog)
+    res.send("Delete single Blog pages")
+})
+
+app.post("/blog/delete/:id",async(req,res)=>{
+    try{
+        await BlogModel.deleteOne({_id:req.params.id})
+        console.log("success of delete")
+        res.send("success of delete")
+    }catch(error){
+        res.send("error message : "+error)
+    }
+})
+
+
+//connecting to port
 app.listen(5000,()=>{
     console.log("Listening on localhost port 5000")
 })
