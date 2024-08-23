@@ -3,6 +3,8 @@ const app = express()
 app.use(express.urlencoded({extended:true}))
 const mongoose=require("mongoose")
 
+app.set("view engine","ejs")
+
 //connecting to MongoDB
 mongoose.connect("mongodb+srv://samukawa:world315@cluster0.zzh2r.mongodb.net/blogUserDatabase?retryWrites=true&w=majority&appName=Cluster0")
     .then(() => {
@@ -24,11 +26,9 @@ const BlogSchema = new Schema({
 const BlogModel = mongoose.model("Blog",BlogSchema)
 
 //blog function
-
-
 //create blog
 app.get("/blog/create",(req,res)=>{
-    res.sendFile(__dirname+"/views/blogCreate.html")
+    res.render("blogCreate")
 })
 
 app.post("/blog/create",async (req,res)=>{
@@ -47,21 +47,21 @@ app.post("/blog/create",async (req,res)=>{
 app.get("/",async(req,res)=>{
     const allBlogs = await BlogModel.find()
     console.log("allblog data : ",allBlogs)
-    res.send("all blog data has read")
+    res.render("index",{allBlogs})
 })
 
 //read single blog
 app.get("/blog/:id",async(req,res)=>{
     const singleBlog = await BlogModel.findById(req.params.id)
     console.log("single blog data : ",singleBlog)
-    res.send("single Blog pages")
+    res.render("blogRead",{singleBlog})
 })
 
 //update blog
 app.get("/blog/update/:id",async(req,res)=>{
     const singleBlog = await BlogModel.findById(req.params.id)
     console.log("singleBlog contents : ",singleBlog)
-    res.send("single Blog editted pages")
+    res.render("blogUpdate",{singleBlog})
 })
 
 
@@ -101,6 +101,7 @@ app.post("/blog/delete/:id",async(req,res)=>{
         console.log("success of delete")
         res.send("success of delete")
     }catch(error){
+        console.log("failure")
         res.send("error message : "+error)
     }
 })
