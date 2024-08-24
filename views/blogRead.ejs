@@ -2,14 +2,19 @@
 <html lang="ja">
     <head>
         <title>blogRead pages</title>
+        <%- include("./head"); %>
     </head>
     <body>
-        <header>Header</header>
+        <%- include("./header"); %>
         <main>
             <h1>TITLE</h1>
             <p>Contents</p>
+        <div>
+            <h1><%=singleBlog.title%></h1>
+            <img src="/public/images<%= singleBlog.image %>" alt="blog-image">
+            <p><%=singleBlog.textBody%></p>
         </div>
         </main>
-        <footer>Footer</footer>
+        <%- include("./footer"); %>
     </body>
 </html>

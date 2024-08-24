@@ -1,9 +1,21 @@
 const express=require("express")
+const session=require("express-session")
 const app = express()
 app.use(express.urlencoded({extended:true}))
 const mongoose=require("mongoose")
+const flash = require("connect-flash")
 
 app.set("view engine","ejs")
+app.use("/public", express.static("public"))
+app.use(flash())
+
+//Session
+app.use(session({
+    secret:"secretKey",
+    resave:false,
+    saveUninitialized: false,
+    cookie:{maxAge:30000},
+}))
 
 //connecting to MongoDB
 mongoose.connect("mongodb+srv://samukawa:world315@cluster0.zzh2r.mongodb.net/blogUserDatabase?retryWrites=true&w=majority&appName=Cluster0")
@@ -23,12 +35,32 @@ const BlogSchema = new Schema({
     textBody:String,
 })
 
-const BlogModel = mongoose.model("Blog",BlogSchema)
+const UserSchema = new Schema({
+    name:{
+        type:String,
+        required:true
+    },
+    email:{
+        type:String,
+        required:true,
+        unique:true
+    },
+    password:{
+        type:String,
+        required:true
+    },
+})
 
-//blog function
+const BlogModel = mongoose.model("Blog",BlogSchema)
+const UserModel = mongoose.model("User",UserSchema)
+
 //create blog
 app.get("/blog/create",(req,res)=>{
-    res.render("blogCreate")
+    if(req.session.userID){
+        res.render("blogCreate")
+    }else{
+        res.redirect("/user/login")
+    }
 })
 
 app.post("/blog/create",async (req,res)=>{
@@ -36,31 +68,17 @@ app.post("/blog/create",async (req,res)=>{
     try{
         const savedBlogData = await BlogModel.create(req.body);
         console.log("成功",savedBlogData);
-        res.send("投稿完了")
+        res.send("投稿完了").redirect("/")
     }catch(err){
+        res.render("error",{message:"/blog/createのエラー"})
         console.log("失敗",err);
-        res.status(500).send("エラーの発生");
+        res.status(500).send("エラーの発生"+ err)
     }
-})
-
-//read all blogs
-app.get("/",async(req,res)=>{
-    const allBlogs = await BlogModel.find()
-    console.log("allblog data : ",allBlogs)
-    res.render("index",{allBlogs})
-})
-
-//read single blog
-app.get("/blog/:id",async(req,res)=>{
-    const singleBlog = await BlogModel.findById(req.params.id)
-    console.log("single blog data : ",singleBlog)
-    res.render("blogRead",{singleBlog})
 })
 
 //update blog
 app.get("/blog/update/:id",async(req,res)=>{
     const singleBlog = await BlogModel.findById(req.params.id)
-    console.log("singleBlog contents : ",singleBlog)
     res.render("blogUpdate",{singleBlog})
 })
 
@@ -82,9 +100,10 @@ app.get("/blog/update/:id",async(req,res)=>{
 app.post("/blog/update/:id", async (req, res) => {
     try {
         await BlogModel.updateOne({ _id: req.params.id }, req.body);
-        res.send("OKOK finished")
+        req.flash("success","update has finished")
+        res.redirect("/")
     } catch (error) {
-        res.send(error.message);
+        res.render("error",{message:"/blog/updateのエラー"});
     }
 });
 
@@ -92,7 +111,7 @@ app.post("/blog/update/:id", async (req, res) => {
 app.get("/blog/delete/:id",async(req,res)=>{
     const singleBlog = await BlogModel.findById(req.params.id)
     console.log("singleBlog contents : ",singleBlog)
-    res.send("Delete single Blog pages")
+    res.render("blogDelete",{singleBlog})
 })
 
 app.post("/blog/delete/:id",async(req,res)=>{
@@ -106,6 +125,62 @@ app.post("/blog/delete/:id",async(req,res)=>{
     }
 })
 
+
+//User function
+//Create user
+app.get("/user/create",async(req,res)=>{
+    await res.render("userCreate")
+})
+
+app.post("/user/create",async(req,res)=>{
+    try{
+        savedUserModel = await UserModel.create(req.body)
+        console.log("savedUserModel : "+ savedUserModel),
+        res.send("Success of User Registration")
+    }catch(error){
+        console.log("failure of User registration")
+        res.status(500).send("Error detected"+ error);
+    }
+})
+
+//userLogin
+app.get("/user/login",(req,res)=>{
+    res.render("login")
+})
+
+app.post("/user/login",async(req,res)=>{
+    try{
+        const savedUserData = await UserModel.findOne({email:req.body.email})
+        if(savedUserData){
+            //ユーザーが存在した場合の処理
+            if(req.body.password === savedUserData.password){
+                //セッションIDをmongoDBの個別idで統一
+                req.session.userID = savedUserData._id
+                res.send("ログイン成功")
+            }else{
+                res.send("パスワードが違います")
+            }
+        }else{
+            res.send("ユーザーが存在していません")
+        }
+    }catch(error){
+        res.send(error)
+    }
+})
+
+//blog function
+//read all blogs
+app.get("/",async(req,res)=>{
+    const allBlogs = await BlogModel.find()
+    console.log("allblog data : ",allBlogs)
+    res.render("index",{allBlogs:allBlogs,session:req.session.userId})
+})
+
+//read single blog
+app.get("/blog/:id",async(req,res)=>{
+    const singleBlog = await BlogModel.findById(req.params.id)
+    res.render("blogRead",{singleBlog:singleBlog, session:req.session.userId})
+})
 
 //connecting to port
 app.listen(5000,()=>{
