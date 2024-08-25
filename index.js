@@ -172,7 +172,6 @@ app.post("/user/login",async(req,res)=>{
 //read all blogs
 app.get("/",async(req,res)=>{
     const allBlogs = await BlogModel.find()
-    console.log("allblog data : ",allBlogs)
     res.render("index",{allBlogs:allBlogs,session:req.session.userId})
 })
 
